@@ -1,0 +1,45 @@
+name: Multi Docker Image Build and Push to ECR
+
+on:
+  push:
+    branches: ["compose-dhlee"]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 소스코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: AWS 인증 정보 등록
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2 # ← 본인 리전 코드로 바꿔!
+
+      - name: ECR 로그인
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 여러 서비스 도커 이미지 빌드 & 푸시
+        env:
+          ECR_REGISTRY: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com # ← 본인 정보로 바꿔!
+        run: |
+          SERVICES="config-service discovery-service gateway-service point-service restaurant-service review-service user-service" # ← 올릴 서비스 폴더/이름들! 직접 수정
+
+          for SERVICE in $SERVICES
+          do
+            echo "===== $SERVICE 빌드 및 푸시 시작 ====="
+            # 도커 빌드 (각 서비스 폴더 기준으로)
+            docker build -t $SERVICE:${GITHUB_SHA} ./back/$SERVICE
+
+            # ECR용 태그
+            docker tag $SERVICE:${GITHUB_SHA} $ECR_REGISTRY/$SERVICE:${GITHUB_SHA}
+            docker tag $SERVICE:${GITHUB_SHA} $ECR_REGISTRY/$SERVICE:latest
+
+            # 푸시
+            docker push $ECR_REGISTRY/$SERVICE:${GITHUB_SHA}
+            docker push $ECR_REGISTRY/$SERVICE:latest
+            echo "===== $SERVICE 푸시 완료 ====="
+          done

@@ -74,7 +74,7 @@ public class UserController {
             return ResponseEntity.ok(resDto);
 
         } catch (IllegalArgumentException e) {
-            // 닉네임 중복 또는 비밀번호 조건 위반
+            // 닉네임 중복 또는 비밀번호 조건 위반임
             CommonResDto resDto = new CommonResDto(
                     HttpStatus.BAD_REQUEST,
                     e.getMessage(),
