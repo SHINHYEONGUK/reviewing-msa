@@ -9,6 +9,7 @@ import com.playdata.userservice.user.dto.UserSaveReqDto;
 import com.playdata.userservice.user.entity.User;
 import com.playdata.userservice.user.external.client.BadgeClient;
 import com.playdata.userservice.user.dto.*;
+import com.playdata.userservice.user.service.KaKaoLoginService;
 import com.playdata.userservice.user.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -38,6 +39,7 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
     private final BadgeClient badgeClient;
+    private final KaKaoLoginService kakaoLoginService;
 
     private final Environment env;
 
@@ -360,5 +362,58 @@ public class UserController {
     public ResponseEntity<Boolean> changeStatus(@RequestBody UserBlackReqDto statusReqDto) {
         Boolean currentStatus = userService.changeStatus(statusReqDto.getUserEmail());
         return ResponseEntity.ok().body(currentStatus);
+    }
+
+    // ⭐⭐⭐ 새로운 컨트롤러 엔드포인트: 카카오 계정 연동 ⭐⭐⭐
+    @PostMapping("/user/link-kakao") // 프론트엔드에서 호출할 새로운 API 엔드포인트
+    public ResponseEntity<?> linkKakaoAccount(@RequestBody UserKakaoLinkReqDto dto) {
+        try {
+            // 카카오 ID 업데이트 및 사용자 정보 조회
+            UserResDto linkedUser = kakaoLoginService.linkKakaoAccount(dto.getEmail(), dto.getKakaoId(), dto.getNickName(), dto.getProfileImage());
+
+            // ⭐ 연동 완료 후 바로 로그인 처리 (JWT 토큰 발급) ⭐
+            String token = jwtTokenProvider.createToken(linkedUser.getEmail(), linkedUser.getRole().toString());
+            // 필요한 경우 리프레시 토큰도 발급 및 Redis에 저장
+
+            Map<String, Object> loginInfo = new HashMap<>();
+            loginInfo.put("token", token);
+            loginInfo.put("id", linkedUser.getId());
+            loginInfo.put("nickName", linkedUser.getNickName());
+            loginInfo.put("role", linkedUser.getRole().toString());
+            // loginInfo.put("badge", badgeClient.getUserBadge(linkedUser.getId())); // 배지 정보 필요하면 호출
+            loginInfo.put("profileImage", linkedUser.getProfileImage());
+
+            CommonResDto resDto = new CommonResDto(
+                    HttpStatus.OK,
+                    "카카오 계정 연동 및 로그인 성공",
+                    loginInfo
+            );
+            return new ResponseEntity<>(resDto, HttpStatus.OK);
+
+        } catch (EntityNotFoundException e) {
+            log.error("카카오 연동 실패: 사용자 없음 - {}", dto.getEmail(), e);
+            CommonResDto resDto = new CommonResDto(
+                    HttpStatus.NOT_FOUND,
+                    "연동할 사용자를 찾을 수 없습니다.",
+                    null
+            );
+            return new ResponseEntity<>(resDto, HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException e) {
+            log.error("카카오 연동 실패: 유효성 문제 - {}", e.getMessage(), e);
+            CommonResDto resDto = new CommonResDto(
+                    HttpStatus.BAD_REQUEST,
+                    e.getMessage(),
+                    null
+            );
+            return new ResponseEntity<>(resDto, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("카카오 연동 중 알 수 없는 오류 발생", e);
+            CommonResDto resDto = new CommonResDto(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "계정 연동 중 서버 오류가 발생했습니다.",
+                    null
+            );
+            return new ResponseEntity<>(resDto, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

@@ -6,13 +6,15 @@ import {
   Dialog,
   Grid,
   TextField,
+  Box,
 } from '@mui/material';
-import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useContext, useState, useEffect } from 'react';
+import { replace, useNavigate, useSearchParams } from 'react-router-dom';
 import AuthContext from '../context/UserContext';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import { API_BASE_URL, USER_SERVICE } from '../configs/host-config';
+import kakaoImg from '../assets/kakao_login_medium_narrow.png';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -20,6 +22,15 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
   const { onLogin } = useContext(AuthContext);
+
+  const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID;
+  const KAKAO_REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI;
+
+  const kakaoAuth = async () => {
+    const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}&prompt=login`;
+
+    window.location.href = kakaoUrl;
+  };
 
   const login = async () => {
     const loginData = {
@@ -50,9 +61,9 @@ const LoginPage = () => {
     <Grid container justifyContent='center' marginTop={'100px'}>
       <Grid
         sx={{
-          border: '2px solid rgba(0, 0, 0, 0.3)', // 테두리: 두께 2px, 반투명 검정
-          borderRadius: 2, // 둥근 모서리
-          boxShadow: 1, // 약간의 그림자
+          border: '2px solid rgba(0, 0, 0, 0.3)',
+          borderRadius: 2,
+          boxShadow: 1,
         }}
         item
         xs={12}
@@ -86,37 +97,62 @@ const LoginPage = () => {
                 margin='normal'
                 required
               />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
+
+              <Grid
+                container
+                spacing={1}
+                justifyContent='center'
+                alignItems='center'
+                sx={{ mt: 2 }}
+              >
+                {/* 비밀번호 찾기 버튼 */}
+                <Grid item xs={4}>
+                  {' '}
+                  {/* 12칸 중 4칸 할당 (3개 버튼이므로 12/3=4) */}
                   <Button
                     color='secondary'
-                    fullWidth
+                    fullWidth // Grid item 내에서 버튼을 꽉 채움
                     onClick={() => navigate('/find-password')}
+                    sx={{ height: 40 }} // 높이 통일
                   >
                     비밀번호 찾기
                   </Button>
                 </Grid>
-                <Grid item xs={6}>
+
+                {/* 로그인 버튼 */}
+                <Grid item xs={4}>
                   <Button
                     type='submit'
                     color='primary'
                     variant='contained'
-                    sx={{ background: 'peru' }}
-                    fullWidth
+                    sx={{ background: 'peru', height: 40 }} // 높이 통일
+                    fullWidth // Grid item 내에서 버튼을 꽉 채움
                   >
                     로그인
                   </Button>
+                </Grid>
+
+                {/* 카카오 로그인 버튼 (이미지) */}
+                <Grid item xs={4}>
+                  <Box
+                    onClick={kakaoAuth}
+                    component='img'
+                    src={kakaoImg}
+                    alt='카카오 로그인'
+                    sx={{
+                      height: 40, // 높이 통일
+                      width: '100%', // Grid item 내에서 너비를 꽉 채움
+                      objectFit: 'contain',
+                      cursor: 'pointer',
+                    }}
+                  />
                 </Grid>
               </Grid>
             </form>
           </CardContent>
         </Card>
       </Grid>
-
-      {/* 비밀번호 변경 모달 */}
-      {/* <Dialog open={resetPassword} onClose={() => setResetPassword(false)}>
-          <ResetPasswordModal handleClose={() => setResetPassword(false)} />
-        </Dialog> */}
+      {/* 비밀번호 변경 모달 부분은 주석 처리된 그대로 둠 */}
     </Grid>
   );
 };

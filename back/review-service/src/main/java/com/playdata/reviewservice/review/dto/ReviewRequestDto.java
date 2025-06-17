@@ -15,7 +15,7 @@ public class ReviewRequestDto {
     private Long restaurantId;
 
     private List<MultipartFile> images;
-
+    private List<String> deletedImageUrls;
     public Review toEntity() {
         return Review.builder()
                 .id(id)

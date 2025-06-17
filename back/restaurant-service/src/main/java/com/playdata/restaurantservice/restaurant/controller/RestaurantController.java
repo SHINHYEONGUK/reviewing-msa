@@ -8,7 +8,9 @@ import com.playdata.restaurantservice.restaurant.dto.RestaurantSearchDto;
 import com.playdata.restaurantservice.restaurant.service.RestaurantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -62,9 +64,12 @@ public class RestaurantController {
 
     // 상점 목록
     @GetMapping("/restaurant/list")
-    public ResponseEntity<?> listRestaurant(RestaurantSearchDto dto, Pageable pageable) {
+    public ResponseEntity<?> listRestaurant(RestaurantSearchDto dto, @RequestParam int page,
+                                            @RequestParam int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")); // 무조건 최신순
         log.info("/restaurant/list: GET, pageable: {}", pageable);
         log.info("dto: {}", dto);
+
         List<RestaurantResDto> dtoList = restaurantService.restaurantList(dto, pageable);
         log.info("dtoList: {}", dtoList);
         CommonResDto resDto = new CommonResDto(HttpStatus.OK, "상점이 조회 되었습니다.", dtoList);

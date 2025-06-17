@@ -129,7 +129,7 @@ public class ReviewService {
         reviewRepository.delete(review);
     }
 
-    public void updateReview(ReviewRequestDto reviewRequestDto, String email) {
+    public void updateReview(ReviewRequestDto reviewRequestDto, String email) throws IOException {
         Review review = reviewRepository.findById(reviewRequestDto.getId()).orElseThrow(
                 () -> new EntityNotFoundException("Review not found!")
         );
@@ -142,6 +142,38 @@ public class ReviewService {
 
         review.setRating(reviewRequestDto.getRating());
         review.setContent(reviewRequestDto.getContent());
+
+        // 1. 삭제할 이미지 처리
+        List<String> deletedImageUrls = reviewRequestDto.getDeletedImageUrls();
+        if (deletedImageUrls != null) {
+            review.getImages().removeIf(image -> {
+                if (deletedImageUrls.contains(image.getUrl())) {
+                    try {
+                        awsS3Config.deleteFromS3Bucket(image.getUrl());
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    return true; // 리스트에서도 제거
+                }
+                return false;
+            });
+        }
+
+        // 2. 새 이미지 추가 처리
+        List<MultipartFile> reviewImages = reviewRequestDto.getImages();
+        if (reviewImages != null) {
+            for (MultipartFile reviewImage : reviewImages) {
+                String uniqueFileName = UUID.randomUUID() + "_" + reviewImage.getOriginalFilename();
+                String imageUrl = awsS3Config.uploadToS3Bucket(reviewImage.getBytes(), uniqueFileName);
+
+                ReviewImage image = new ReviewImage();
+                image.setUrl(imageUrl);
+                image.setSort_order(0);
+                image.setReview(review); // 연관관계 바인딩 필수!
+
+                review.getImages().add(image);
+            }
+        }
         reviewRepository.save(review);
     }
 

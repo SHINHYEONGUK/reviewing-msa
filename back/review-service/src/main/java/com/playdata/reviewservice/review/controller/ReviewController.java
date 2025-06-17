@@ -57,7 +57,7 @@ public class ReviewController {
     // 리뷰 수정
     @PatchMapping("/review")
     public ResponseEntity<?> updateReview(@AuthenticationPrincipal TokenUserInfo tokenUserInfo,
-                                          ReviewRequestDto reviewRequestDto) {
+                                          ReviewRequestDto reviewRequestDto) throws IOException {
         reviewService.updateReview(reviewRequestDto, tokenUserInfo.getEmail());
         CommonResDto resDto = new CommonResDto(
                 HttpStatus.OK, "리뷰 수정 완료!", null

@@ -1,6 +1,7 @@
 package com.playdata.userservice.user.service;
 
 
+import com.ctc.wstx.util.StringUtil;
 import com.playdata.userservice.user.dto.*;
 import com.playdata.userservice.common.config.AwsS3Config;
 import com.playdata.userservice.user.entity.User;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -56,23 +58,57 @@ public class UserService {
     private static final Duration RESET_CODE_TTL = Duration.ofMinutes(5);
 
 
-
-
+    @Transactional
     public UserResDto createUser(UserSaveReqDto dto) {
-        Optional<User> foundEmail
-                = userRepository.findByEmail(dto.getEmail());
-
-        if (foundEmail.isPresent()) {
+        // 1. 이메일 중복 확인 (신규 가입에만 해당)
+        // 이메일이 이미 존재하면 예외 발생 (카카오 연동은 linkKakaoAccount에서 처리하므로 여기서 걸리면 안 됨)
+        if (userRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new IllegalArgumentException("이미 존재하는 이메일 입니다!");
         }
 
-        User user = dto.toEntity(encoder);
-        User saved = userRepository.save(user);
+        // 2. 닉네임 중복 확인
+        if (userRepository.findByNickName(dto.getNickName()).isPresent()) {
+            throw new IllegalArgumentException("이미 존재하는 닉네임 입니다!");
+        }
 
+        // 3. 비밀번호 처리 (카카오 로그인 사용자 vs 일반 사용자)
+        String finalEncodedPassword;
+        if (dto.getKakaoId() != null) {
+            // 카카오 로그인 사용자: 비밀번호를 따로 입력받지 않으므로, DB의 NOT NULL 제약조건을 만족시키기 위해 임의의 비밀번호 생성
+            finalEncodedPassword = encoder.encode(UUID.randomUUID().toString());
+        } else {
+            // 일반 회원가입 사용자: 비밀번호가 필수로 존재해야 함
+            if (!StringUtils.hasText(dto.getPassword())) { // 비밀번호가 null이거나 빈 문자열인지 확인
+                throw new IllegalArgumentException("비밀번호는 필수입니다.");
+            }
+            // 비밀번호 길이 검사 (패턴 검사도 필요하다면 여기에 추가)
+            if (dto.getPassword().length() < 8) {
+                throw new IllegalArgumentException("비밀번호는 최소 8자 이상이어야 합니다.");
+            }
+            // UserSaveReqDto에서 @Pattern이 제거되었으므로 여기에 패턴 검사를 추가할 수 있습니다.
+            // 예시: if (!dto.getPassword().matches("^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,20}$")) {
+            //     throw new IllegalArgumentException("비밀번호는 영문, 숫자, 특수문자를 포함하여 8~20자리여야 합니다.");
+            // }
+            finalEncodedPassword = encoder.encode(dto.getPassword());
+        }
 
+        // 4. User Entity 생성 및 저장
+        User newUser = User.builder()
+                .nickName(dto.getNickName())
+                .email(dto.getEmail())
+                .password(finalEncodedPassword) // 인코딩된 최종 비밀번호
+                .kakaoId(dto.getKakaoId()) // 카카오 ID (null 또는 Long 값)
+                .role(dto.getRole()) // Role enum 그대로 사용
+                .isBlack(false) // 기본값
+                .point(0) // 기본값
+                .build();
 
-        return saved.toDto();
+        User savedUser = userRepository.save(newUser);
+        return savedUser.toDto();
     }
+
+
+
 
     public UserResDto login(UserLoginReqDto dto) {
         User user = userRepository.findByEmail(dto.getEmail()).orElseThrow(

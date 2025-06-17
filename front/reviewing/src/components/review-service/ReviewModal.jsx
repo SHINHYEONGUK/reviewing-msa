@@ -11,11 +11,15 @@ const ReviewModal = ({
   handleCancelBtnClick,
   onReviewSubmitted,
   isModify = false,
-  modifyingInfo = null,
+  modifyingInfo = {},
   restaurantName,
 }) => {
   const [reviewImages, setReviewImages] = useState([]);
   const [thumbnailImages, setThumbnailImages] = useState([]);
+  const [thumbnailImagesTemp, setThumbnailImagesTemp] = useState(
+    modifyingInfo.images ? modifyingInfo.images : [],
+  );
+  const [deletedImage, setDeletedImage] = useState([]);
   const [reviewContent, setReviewContent] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -39,8 +43,28 @@ const ReviewModal = ({
     if (isModify && modifyingInfo) {
       setReviewContent(modifyingInfo.content);
       setRating(modifyingInfo.rating);
+      handleThumbnailPreview();
     }
   }, []);
+  useEffect(() => {
+    // reviewImages가 바뀔 때마다 프리뷰를 생성
+    if (!reviewImages.length) {
+      setThumbnailImages((prev) => [...prev]);
+      return;
+    }
+    const files = reviewImages;
+    const thumbnailPromises = files.map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(thumbnailPromises).then((thumbnails) => {
+      setThumbnailImages((prev) => [...thumbnails, ...thumbnailImagesTemp]);
+    });
+  }, [reviewImages]);
 
   const handlePostBtnClick = (e) => {
     if (!isModify) {
@@ -97,6 +121,9 @@ const ReviewModal = ({
     for (let i = 0; i < files.length; i++) {
       reviewBody.append('images', files[i]);
     }
+    for (let img of deletedImage) {
+      reviewBody.append('deletedImageUrls', img);
+    }
     try {
       await axiosInstance.patch(
         `${API_BASE_URL}${REVIEW_SERVICE}/review`,
@@ -107,7 +134,7 @@ const ReviewModal = ({
           },
         },
       );
-      alert('리뷰 수정정 완료!');
+      alert('리뷰 수정 완료!');
       handleCancelBtnClick();
       onReviewSubmitted();
     } catch (e) {
@@ -117,31 +144,37 @@ const ReviewModal = ({
 
   const updateFiles = () => {
     const files = $fileTag.current.files;
-    setReviewImages(files);
-    handleThumbnailPreview();
-  };
-
-  const handleThumbnailPreview = () => {
-    const files = $fileTag.current.files;
-    const thumbnailPromises = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const reader = new FileReader();
-      const promise = new Promise((resolve) => {
-        reader.onloadend = () => {
-          resolve(reader.result);
-        };
-      });
-
-      reader.readAsDataURL(files[i]);
-      thumbnailPromises.push(promise);
-    }
-
-    Promise.all(thumbnailPromises).then((thumbnails) => {
-      setThumbnailImages(thumbnails);
+    const newFiles = Array.from(files);
+    setReviewImages((prev) => {
+      const updated = [...prev, ...newFiles];
+      // 썸네일은 비동기이므로 setState 이후 반영
+      setTimeout(() => handleThumbnailPreview(), 0);
+      return updated;
     });
   };
 
+  const handleThumbnailPreview = () => {
+    const thumbnails = [...thumbnailImages, ...thumbnailImagesTemp]; // 기존 URL 유지
+    const newFiles = reviewImages.slice(thumbnails.length); // 새로 추가된 파일만 처리
+
+    const newThumbnails = newFiles.map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(newThumbnails).then((results) => {
+      setThumbnailImages([...thumbnails, ...results]);
+    });
+  };
+
+  const handleDeleteImage = (url) => {
+    setDeletedImage((prev) => [...prev, url]);
+    const idx = thumbnailImages.indexOf(url); // 첫 번째로 일치하는 위치(없으면 -1)
+    if (idx !== -1) thumbnailImages.splice(idx, 1); // 해당 인덱스부터 1개 삭제
+  };
   const handleStarClick = (value) => {
     console.log('클릭됨', value);
     setRating(value);
@@ -192,7 +225,18 @@ const ReviewModal = ({
           <div className={styles.imagesWrap}>
             {thumbnailImages &&
               thumbnailImages.map((value, index) => {
-                return <img src={value} style={{ width: '70px' }} />;
+                return (
+                  <>
+                    <button
+                      type='button'
+                      onClick={() => handleDeleteImage(value)}
+                      className={styles.deleteBtn}
+                    >
+                      <span>X</span>
+                    </button>
+                    <img src={value} style={{ width: '70px' }} />
+                  </>
+                );
               })}
           </div>
         </div>
