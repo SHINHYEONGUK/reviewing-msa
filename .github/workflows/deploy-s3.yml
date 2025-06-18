@@ -3,7 +3,7 @@ name: Deploy Static Assets to S3
 on:
   push:
     branches:
-      - main   # 또는 배포할 브랜치
+      - main
       - compose-dhlee
 
 jobs:
@@ -20,6 +20,7 @@ jobs:
           node-version: "16"
 
       - name: 의존성 설치 & 빌드
+        working-directory: front
         run: |
           npm ci
           npm run build
@@ -33,4 +34,7 @@ jobs:
 
       - name: S3에 동기화
         run: |
-          aws s3 sync build/ s3://your-domain.com --delete
+          aws s3 sync front/build/ s3://${{ secrets.S3_BUCKET }} \
+            --delete \
+            --acl public-read \
+            --cache-control "max-age=31536000,public"
