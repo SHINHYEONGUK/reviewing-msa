@@ -21,6 +21,9 @@ jobs:
 
       - name: 의존성 설치 & 빌드
         working-directory: front/reviewing
+        env: # ← CHANGED: CI 빌드 환경에 VITE_* 변수 주입
+          VITE_KAKAO_CLIENT_ID: ${{ secrets.VITE_KAKAO_CLIENT_ID }}
+          VITE_KAKAO_REDIRECT_URI: ${{ secrets.VITE_KAKAO_REDIRECT_URI }}
         run: |
           npm ci
           npm run build
