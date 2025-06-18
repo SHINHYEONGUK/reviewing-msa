@@ -17,7 +17,7 @@ jobs:
       - name: Node.js 설치
         uses: actions/setup-node@v3
         with:
-          node-version: "22.x"    # ← 여기만 바꿨습니다
+          node-version: "22.x"    # ← CHANGED: 기존 "16"에서 "22.x"로 상향
 
       - name: 의존성 설치 & 빌드
         working-directory: front/reviewing
@@ -48,10 +48,10 @@ jobs:
       - name: S3에 동기화
         working-directory: front/reviewing
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} \
-            --delete \
-            --acl public-read \
-            --cache-control "max-age=31536000,public"
+               aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} \
+               --delete \
+          #         --acl public-read \   # ← CHANGED: ACL 비활성화된 버킷이므로 제거
+               --cache-control "max-age=31536000,public"
 
       # --- 디버그: 동기화 후 S3 상태 ---
       - name: S3 동기화 후 객체 목록
