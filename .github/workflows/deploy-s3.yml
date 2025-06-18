@@ -48,10 +48,9 @@ jobs:
       - name: S3에 동기화
         working-directory: front/reviewing
         run: |
-               aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} \
-               --delete \
-          #         --acl public-read \   # ← CHANGED: ACL 비활성화된 버킷이므로 제거
-               --cache-control "max-age=31536000,public"
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} \
+            --delete \
+            --cache-control "max-age=31536000,public"   # ← CHANGED: --acl public-read 옵션 제거
 
       # --- 디버그: 동기화 후 S3 상태 ---
       - name: S3 동기화 후 객체 목록
