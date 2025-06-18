@@ -1,14 +1,20 @@
-
 #Docker Compose 파일 포맷의 버전을 지정합니다.
-version: '3.8'
+version: "3.8"
 services:
   config-service:
-    build: ./config-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/config-service:latest
     container_name: config-service
     networks:
       - msa-network
     ports:
       - "8888:8888"
+    volumes:
+      - /home/ubuntu/config-service-tmp/application-dev.yml:/application-dev.yml
+    command:
+      [
+        "--spring.profiles.active=dev",
+        "--spring.config.location=/application-dev.yml",
+      ]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://config-service:8888/actuator/health"]
       interval: 15s
@@ -17,23 +23,22 @@ services:
       start_period: 60s
     restart: always
 
-
   discovery-service:
-    build: ./discovery-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/discovery-service:latest
     container_name: discovery-service
     networks:
       - msa-network
     ports:
       - "8761:8761"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://discovery-service:8761" ]
+      test: ["CMD", "curl", "-f", "http://discovery-service:8761"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 60s
 
   gateway-service:
-    build: ./gateway-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/gateway-service:latest
     container_name: gateway-service
     networks:
       - msa-network
@@ -47,7 +52,7 @@ services:
     restart: always
 
   user-service:
-    build: ./user-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/user-service:latest
     container_name: user-service
     networks:
       - msa-network
@@ -59,7 +64,7 @@ services:
     restart: always
 
   restaurant-service:
-    build: ./restaurant-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/restaurant-service:latest
     container_name: restaurant-service
     networks:
       - msa-network
@@ -71,7 +76,7 @@ services:
     restart: always
 
   review-service:
-    build: ./review-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/review-service:latest
     container_name: review-service
     networks:
       - msa-network
@@ -83,7 +88,7 @@ services:
     restart: always
 
   point-service:
-    build: ./point-service
+    image: 221082190600.dkr.ecr.ap-northeast-2.amazonaws.com/point-service:latest
     container_name: point-service
     networks:
       - msa-network
