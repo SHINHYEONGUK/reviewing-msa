@@ -17,7 +17,7 @@ jobs:
       - name: Node.js 설치
         uses: actions/setup-node@v3
         with:
-          node-version: "16"
+          node-version: "22.x"    # ← 여기만 바꿨습니다
 
       - name: 의존성 설치 & 빌드
         working-directory: front/reviewing
