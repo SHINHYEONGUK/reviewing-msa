@@ -20,7 +20,7 @@ jobs:
           node-version: "16"
 
       - name: 의존성 설치 & 빌드
-        working-directory: front
+        working-directory: front/reviewing     # <-- 여기 경로 수정
         run: |
           npm ci
           npm run build
@@ -34,7 +34,7 @@ jobs:
 
       - name: S3에 동기화
         run: |
-          aws s3 sync front/build/ s3://${{ secrets.S3_BUCKET }} \
+          aws s3 sync front/reviewing/build/ s3://${{ secrets.S3_BUCKET }} \
             --delete \
             --acl public-read \
             --cache-control "max-age=31536000,public"
