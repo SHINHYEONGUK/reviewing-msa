@@ -58,4 +58,4 @@ jobs:
       # --- 디버그: 동기화 후 S3 상태 --
       - name: S3 동기화 후 객체 목록
         run: |
-          aws s3 ls s3://${{ secrets.S3_BUCKET }}/ --recursive
+          aws s3 ls s3://${{ secrets.S3_BUCKET }} --recursive
