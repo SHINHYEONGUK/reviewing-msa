@@ -13,13 +13,13 @@ let backendHostName;
 
 if (clientHostName === 'localhost') {
   // 개발 중
-  backendHostName = 'http://3.36.94.28:8000';
+  backendHostName = 'http://3.38.247.144:8000';
   // backendHostName = 'http://43.201.15.111:8000';
 } else if (clientHostName === 'playdatashop.com') {
   // 배포해서 현재 서비스 중
   backendHostName = 'https://api.playdatashop.com';
 } else {
-  backendHostName = 'http://3.36.94.28:8000';
+  backendHostName = 'http://3.38.247.144:8000';
 }
 
 export const API_BASE_URL = backendHostName;
