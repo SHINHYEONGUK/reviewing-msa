@@ -55,7 +55,7 @@ jobs:
             --delete \
             --cache-control "max-age=31536000,public"   # ← CHANGED: --acl public-read 옵션 제거
 
-      # --- 디버그: 동기화 후 S3 상태 ---
+      # --- 디버그: 동기화 후 S3 상태 --
       - name: S3 동기화 후 객체 목록
         run: |
           aws s3 ls s3://${{ secrets.S3_BUCKET }}/ --recursive
