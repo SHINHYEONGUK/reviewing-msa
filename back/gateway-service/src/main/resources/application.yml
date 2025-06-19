@@ -10,7 +10,7 @@ spring:
         cors-configurations:
           "[/**]":
             allowed-origins:
-              - "http://reviewing-msa-assets.s3-website.ap-northeast-2.amazonaws.com"
+              - "http://gukshin.store.s3-website.ap-northeast-2.amazonaws.com"
             allowed-methods:
               - GET
               - POST
