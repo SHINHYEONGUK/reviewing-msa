@@ -11,6 +11,11 @@ spring:
           "[/**]":
             allowed-origins:
               - "http://gukshin.store.s3-website.ap-northeast-2.amazonaws.com"
+              - "http://gukshin.store"
+              - "https://gukshin.store.s3-website.ap-northeast-2.amazonaws.com"
+              - "https://gukshin.store"
+
+
             allowed-methods:
               - GET
               - POST
